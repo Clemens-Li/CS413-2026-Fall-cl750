@@ -2,6 +2,7 @@
 (function installRuntime(root) {
 'use strict';
 const schema = {D0Eint:['int'],D0Ebtf:['bool'],D0Evar:['str'],D0Eop1:['str','expr'],D0Eop2:['str','expr','expr'],D0Elam:['str','expr'],D0Efix:['str','str','expr'],D0Eapp:['expr','expr'],D0Eif0:['expr','expr','expr'],D0Elet:['str','expr','expr'],D0Epair:['expr','expr'],D0Epfst:['expr'],D0Epsnd:['expr']};
+const aliases = Object.fromEntries(Object.keys(schema).map(name => [name.replace('D0E','DOE'), name]));
 function read(source) {
  if (!source.trim() || new TextEncoder().encode(source).length>65536) throw Error('Source must contain 1–65,536 UTF-8 bytes.');
  let pos=0;
@@ -18,7 +19,7 @@ function read(source) {
   if(type==='int'){const match=source.slice(pos).match(/^-?\s*(?:0[xX][0-9a-fA-F]+|0[bB][01]+|0[oO][0-7]+|[0-9][0-9_]*)/);if(!match)throw Error('Expected a literal integer.');pos+=match[0].length;let s=match[0].replace(/[\s_]/g,'');return s.startsWith('-')?-BigInt(s.slice(1)):BigInt(s);}
   if(type==='bool'){const match=source.slice(pos).match(/^(True|False)\b/);if(!match)throw Error('Expected True or False.');pos+=match[0].length;return match[0]==='True';}
   if(source[pos]==='('){pos++;const v=parse();take(')');return v;}
-  const match=source.slice(pos).match(/^D0E\w+/), name=match&&match[0];if(!Object.hasOwn(schema,name))throw Error('Use only supported D0E constructor calls; Python code is not allowed.');pos+=name.length;take('(');const args=schema[name].map((t,i)=>{if(i)take(',');return parse(t);});skip();if(source[pos]===',')pos++;take(')');return {tag:name,args};
+  const match=source.slice(pos).match(/^D(?:0|O)E\w+/), suppliedName=match&&match[0], name=aliases[suppliedName]||suppliedName;if(!Object.hasOwn(schema,name))throw Error('Use only supported D0E constructor calls; Python code is not allowed.');pos+=suppliedName.length;take('(');const args=schema[name].map((t,i)=>{if(i)take(',');return parse(t);});skip();if(source[pos]===',')pos++;take(')');return {tag:name,args};
  }
  const expr=parse();skip();if(pos!==source.length)throw Error(`Unexpected input at character ${pos+1}.`);return expr;
 }

@@ -15,6 +15,11 @@ SCHEMA = {
     'D0Elet': (str, 'expr', 'expr'), 'D0Epair': ('expr', 'expr'),
     'D0Epfst': ('expr',), 'D0Epsnd': ('expr',),
 }
+# D0E is the spelling used by lambda1.py (the middle character is zero).
+# DOE appeared in early course material and is a common, visually ambiguous
+# transcription, so accept it at the input boundary while always constructing
+# the canonical interpreter nodes.
+ALIASES = {name.replace('D0E', 'DOE', 1): name for name in SCHEMA}
 
 def read_source(source):
     if not source.strip() or len(source.encode('utf-8')) > LIMIT:
@@ -26,12 +31,15 @@ def read_source(source):
             if not isinstance(node, ast.Constant) or type(node.value) is not expected:
                 raise ValueError(f'Expected a literal {expected.__name__}.')
             return node.value
-        if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Name) or node.func.id not in SCHEMA:
+        if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Name):
             raise ValueError('Use only supported D0E constructor calls; Python code is not allowed.')
-        schema = SCHEMA[node.func.id]
+        constructor = ALIASES.get(node.func.id, node.func.id)
+        if constructor not in SCHEMA:
+            raise ValueError('Use only supported D0E constructor calls; Python code is not allowed.')
+        schema = SCHEMA[constructor]
         if node.keywords or len(node.args) != len(schema):
-            raise ValueError(f'{node.func.id} expects {len(schema)} positional arguments.')
-        return getattr(lang, node.func.id)(*(read(n, t) for n, t in zip(node.args, schema)))
+            raise ValueError(f'{constructor} expects {len(schema)} positional arguments.')
+        return getattr(lang, constructor)(*(read(n, t) for n, t in zip(node.args, schema)))
     return read(ast.parse(source.strip(), mode='eval').body)
 
 def perform(operation, source):

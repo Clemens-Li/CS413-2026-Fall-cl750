@@ -31,6 +31,8 @@ Typing enables Apply changes and Discard changes. Until edits are resolved, tool
 
 Input is one Python constructor expression, with positional arguments, literal strings/integers/Booleans, nested constructors, comments, and multiline formatting. It is not a Python script: imports, attributes, arbitrary calls, comprehensions, and keyword arguments are rejected. See the constructor reference in the page and `examples/`. `D0E000` is an abstract error form and is not accepted as source. Unary integer negation is supported. Operators follow `lambda1.py`; integer division uses `/` as the operator string.
 
+Use the canonical constructor prefix `D0E` (with zero), for example `D0Eop2("+", D0Eint(20), D0Eint(22))`, which evaluates to `D0Vint(arg1=42)`. For compatibility, the workbench also accepts the visually similar `DOE` prefix, so `DOEop2("+", DOEint(20), DOEint(22))` has the same result. Both the server interpreter and offline browser fallback normalize it to the canonical LAMBDA nodes.
+
 Source is limited to 65,536 UTF-8 bytes. Each backend operation runs in a subprocess with a three-second wall-clock timeout (and, on Unix, a three-second CPU limit and a 256 MiB address-space limit). Python recursion limits may terminate recursive programs earlier. Very large values may exceed Python's integer-to-string limit. These resource bounds are for a local educational tool, not a public service. Actual type-checking, compilation, generated-code execution, and multi-user support are not implemented.
 
 ## Offline browser fallback

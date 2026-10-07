@@ -9,6 +9,7 @@ require(path.join(root, 'static/runtime.js'));
 require(path.join(root, 'static/examples.js'));
 const {perform} = globalThis.LambdaRuntime;
 const cases = [
+ ['DOEop2("+", DOEint(20), DOEint(22))','D0Vint(arg1=42)'],
  ['D0Eop2("/", D0Eint(-7), D0Eint(3))','D0Vint(arg1=-3)'],
  ['D0Eop2("/", D0Eint(7), D0Eint(-3))','D0Vint(arg1=-3)'],
  ['D0Eop2("*", D0Eint(9007199254740993), D0Eint(3))','D0Vint(arg1=27021597764222979)'],

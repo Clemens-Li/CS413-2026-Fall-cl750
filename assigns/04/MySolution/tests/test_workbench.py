@@ -42,6 +42,20 @@ class LanguageTests(unittest.TestCase):
                     base=source.rsplit('D0Eint(',1)[0]+f'D0Eint({n}))'
                     self.assertEqual(perform('interpret',base)['text'],f'D0Vint(arg1={1 if name=="Factorial" else n})')
 
+    def test_interpreter_operations_and_constructor_spelling(self):
+        cases = {
+            'D0Eop2("+", D0Eint(20), D0Eint(22))': 'D0Vint(arg1=42)',
+            'DOEop2("+", DOEint(20), DOEint(22))': 'D0Vint(arg1=42)',
+            'D0Eop1("-1", D0Eint(3))': 'D0Vint(arg1=2)',
+            'D0Eif0(D0Ebtf(False), D0Eint(1), D0Eint(2))': 'D0Vint(arg1=2)',
+            'D0Epfst(D0Epair(D0Eint(7), D0Eint(9)))': 'D0Vint(arg1=7)',
+            'D0Elet("x", D0Eint(40), D0Eop2("+", D0Evar("x"), D0Eint(2)))': 'D0Vint(arg1=42)',
+            'D0Eapp(D0Elam("x", D0Eop2("+", D0Evar("x"), D0Eint(1))), D0Eint(41))': 'D0Vint(arg1=42)',
+        }
+        for source, expected in cases.items():
+            with self.subTest(source=source):
+                self.assertEqual(perform('interpret', source), {'outcome': 'success', 'text': expected})
+
     def test_lint_does_not_evaluate_and_errors(self):
         source='D0Eop2("/", D0Eint(1), D0Eint(0))'
         with patch.object(L,'d0exp_evaluate',side_effect=AssertionError('must not evaluate')):

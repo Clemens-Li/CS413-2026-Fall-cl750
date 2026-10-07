@@ -24,4 +24,4 @@ A later prompt asked to continue according to `Assign04.md`. Remaining gaps were
 - `python tests/http_smoke.py` against `http://127.0.0.1:8040` — 20/20 passed.
 - `node --experimental-websocket tests/browser-smoke.mjs` with headless Chrome CDP — browser smoke checks passed; mobile overflow false.
 
-Human review still owns grading judgment about architectural clarity and demonstration quality; automated checks cover the behavioral requirements listed in `TESTING.md`.
+Manual review by me still made decisions about architectural clarity and demonstration quality; automated checks covered the behavioral requirements listed in `TESTING.md`.
