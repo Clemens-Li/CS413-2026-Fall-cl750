@@ -98,6 +98,39 @@ class SubstitutionAndReductionTests(unittest.TestCase):
         term = target.Lam("x", target.Var("x"))
         self.assertEqual(target.substitute(term, "x", target.Var("y")), term)
 
+    def test_capture_avoidance_renames_bound_occurrences(self):
+        # [x := y] (lam y. x y) must be alpha-equivalent to (lam fresh. y fresh):
+        # the bound y is renamed together with its binder; the inserted y stays free.
+        original = target.Lam("y", target.App(target.Var("x"), target.Var("y")))
+        replacement = target.Var("y")
+        answer = target.substitute(original, "x", replacement)
+        self.assertIsInstance(answer, target.Lam)
+        fresh = answer.name
+        self.assertNotEqual(fresh, "y")
+        self.assertEqual(answer.body, target.App(target.Var("y"), target.Var(fresh)))
+        self.assertEqual(target.free_vars(answer), {"y"})
+        self.assertEqual(original, target.Lam("y", target.App(target.Var("x"), target.Var("y"))))
+
+    def test_capture_avoidance_respects_inner_shadowing_and_fresh_names(self):
+        # The inner (lam y. y) rebinds y, so it must be left alone by the renaming.
+        original = target.Lam(
+            "y",
+            target.App(target.Var("x"), target.App(target.Var("y"), target.Lam("y", target.Var("y")))),
+        )
+        answer = target.substitute(original, "x", target.Var("y"))
+        fresh = answer.name
+        self.assertNotEqual(fresh, "y")
+        self.assertEqual(
+            answer.body,
+            target.App(target.Var("y"), target.App(target.Var(fresh), target.Lam("y", target.Var("y")))),
+        )
+        self.assertEqual(target.free_vars(answer), {"y"})
+        # The fresh name must also avoid names already used in the body (y_1 here).
+        crowded = target.Lam("y", target.App(target.Var("x"), target.App(target.Var("y"), target.Var("y_1"))))
+        answer = target.substitute(crowded, "x", target.Var("y"))
+        self.assertNotIn(answer.name, {"y", "y_1"})
+        self.assertEqual(target.free_vars(answer), {"y", "y_1"})
+
     def test_cbv_order_zero_steps_determinism_and_exhaustion(self):
         identity = target.Lam("x", target.Var("x"))
         under_lambda = target.Lam("x", target.App(target.Lam("y", target.Var("y")), target.Lam("z", target.Var("z"))))
@@ -127,6 +160,26 @@ class SubstitutionAndReductionTests(unittest.TestCase):
         self.assertEqual(exhausted.status, "exhausted")
         self.assertEqual(exhausted.steps, 12)
         self.assertEqual(diverging, snapshot)
+
+    def test_function_then_argument_evaluation_order(self):
+        identity = target.Lam("x", target.Var("x"))
+        apply_id = target.App(identity, identity)
+        omega = target.Lam("x", target.App(target.Var("x"), target.Var("x")))
+        diverging = target.App(omega, omega)
+
+        # (I I) (I I): left child, then right child, then the outer contraction.
+        done = target.eval_target(target.App(apply_id, apply_id), 10)
+        self.assertEqual((done.status, done.steps, done.value), ("complete", 3, identity))
+
+        # Diverging function position: the argument must still be untouched.
+        fn_first = target.eval_target(target.App(diverging, apply_id), 8)
+        self.assertEqual((fn_first.status, fn_first.steps), ("exhausted", 8))
+        self.assertEqual(fn_first.value.arg, apply_id)
+
+        # Diverging argument: the function position must already be a value (I I -> I).
+        arg_second = target.eval_target(target.App(apply_id, diverging), 8)
+        self.assertEqual((arg_second.status, arg_second.steps), ("exhausted", 8))
+        self.assertEqual(arg_second.value.fn, identity)
 
     def test_printer(self):
         self.assertEqual(target.pretty_term(target.Var("x")), "x")
@@ -303,6 +356,68 @@ class CompilerCoverageTests(unittest.TestCase):
             compiler.compile_expr(A.D0Elam("x", A.D0Eop2("/", A.D0Eint(4), A.D0Eint(2))))
         with self.assertRaises(ValueError):
             compiler.compile_expr(A.D0Eop1("neg", A.D0Eint(1)))
+
+    def test_selected_branch_divergence(self):
+        self.assertEqual(reduce(A.D0Eif0(A.D0Ebtf(True), loop(), A.D0Eint(1)), 200).status, "exhausted")
+        self.assertEqual(reduce(A.D0Eif0(A.D0Ebtf(False), A.D0Eint(1), loop()), 200).status, "exhausted")
+        self.assertEqual(reduce(A.D0Eop2("and", A.D0Ebtf(True), loop()), 200).status, "exhausted")
+        self.assertEqual(reduce(A.D0Eop2("or", A.D0Ebtf(False), loop()), 200).status, "exhausted")
+
+    def test_generated_binders_do_not_capture_source_names(self):
+        # Source variables named like compiler-introduced binders (u, v, f_1, x_1, ...).
+        free_u_v = A.D0Eif0(A.D0Evar("c"), A.D0Evar("u"), A.D0Evar("v"))
+        self.assertEqual(target.free_vars(compiler.compile_expr(free_u_v)), {"c", "u", "v"})
+        short = A.D0Eop2("and", A.D0Evar("u"), A.D0Eop2("or", A.D0Evar("v"), A.D0Evar("w")))
+        self.assertEqual(target.free_vars(compiler.compile_expr(short)), {"u", "v", "w"})
+        fix_open = A.D0Efix(
+            "f", "x",
+            A.D0Eop2("+", A.D0Eapp(A.D0Evar("f"), A.D0Evar("x")), A.D0Eop2("+", A.D0Evar("f_1"), A.D0Evar("x_1"))),
+        )
+        self.assertEqual(target.free_vars(compiler.compile_expr(fix_open)), {"f_1", "x_1"})
+        # Closed programs whose source names collide with generated ones still run correctly.
+        for cond, expected in ((True, 2), (False, 3)):
+            program = A.D0Elet(
+                "u", A.D0Eint(2),
+                A.D0Elet("v", A.D0Eint(3), A.D0Eif0(A.D0Ebtf(cond), A.D0Evar("u"), A.D0Evar("v"))),
+            )
+            self.assertEqual(nat(program), expected)
+        collide_fix = A.D0Elet(
+            "f_1", A.D0Eint(5),
+            A.D0Elet(
+                "x_1", A.D0Eint(1),
+                A.D0Eapp(
+                    A.D0Efix("f", "x", A.D0Eop2("+", A.D0Evar("x"), A.D0Eop2("+", A.D0Evar("f_1"), A.D0Evar("x_1")))),
+                    A.D0Eint(2),
+                ),
+            ),
+        )
+        self.assertEqual(nat(collide_fix), 8)
+        # Each fix binder is available independently of the other.
+        param_only = A.D0Eapp(A.D0Efix("f", "x", A.D0Evar("x")), A.D0Eint(4))
+        self.assertEqual(nat(param_only), 4)
+
+    def test_compiled_results_agree_with_shared_source_evaluator(self):
+        programs = [
+            (A.D0Eop2("+", A.D0Eint(2), A.D0Eop2("*", A.D0Eint(3), A.D0Eint(4))), "nat"),
+            (A.D0Eop2("-", A.D0Eint(2), A.D0Eint(5)), "nat"),
+            (A.D0Eop2("-", A.D0Eint(9), A.D0Eint(4)), "nat"),
+            (A.D0Eif0(A.D0Eop2("<=", A.D0Eint(2), A.D0Eint(3)), A.D0Eint(7), A.D0Eint(9)), "nat"),
+            (A.D0Elet("x", A.D0Eint(3), A.D0Eapp(A.D0Elam("y", A.D0Eop2("+", A.D0Evar("x"), A.D0Evar("y"))), A.D0Eint(4))), "nat"),
+            (A.D0Epfst(A.D0Epair(A.D0Eint(2), A.D0Ebtf(True))), "nat"),
+            (A.D0Epsnd(A.D0Epair(A.D0Eint(2), A.D0Ebtf(True))), "bool"),
+            (A.D0Eop2("and", A.D0Ebtf(True), A.D0Ebtf(False)), "bool"),
+            (A.D0Eop2("or", A.D0Ebtf(False), A.D0Ebtf(True)), "bool"),
+            (A.D0Eop2("and", A.D0Ebtf(False), loop()), "bool"),
+            (A.D0Eop2("!=", A.D0Eint(4), A.D0Eint(4)), "bool"),
+            (A.D0Eop1("not", A.D0Eop2(">=", A.D0Eint(1), A.D0Eint(2))), "bool"),
+            (fact(4), "nat"),
+            (fib(5), "nat"),
+        ]
+        for source, kind in programs:
+            expected = evaluator.evaluate(source)
+            observed = nat(source) if kind == "nat" else boolean(source)
+            self.assertEqual(observed, expected, repr(source))
+            self.assertIs(type(observed), type(expected), repr(source))
 
     def test_purity_and_no_evaluator_during_compile(self):
         source = A.D0Eop2("+", A.D0Eint(2), A.D0Eop2("*", A.D0Eint(3), A.D0Eint(4)))

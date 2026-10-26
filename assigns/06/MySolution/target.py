@@ -1,3 +1,8 @@
+"""Pure target AST, printer, free variables, capture-avoiding substitution, weak CBV reducer.
+
+Printer, free-variable analysis, and fresh-name ideas adapt the author's Assignment 5
+substitution work (supplied lambda1_vp.py is used only by the compiler, unmodified).
+"""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -104,8 +109,11 @@ def substitute(term: Term, variable: str, replacement: Term) -> Term:
             blocked = all_names(term.body) | all_names(replacement) | {variable}
             if term.name in free_vars(replacement):
                 fresh = choose_fresh(term.name, blocked)
-                renamed = alpha_rename(term.body, term.name, fresh)
-                return Lam(fresh, substitute(renamed, variable, replacement))
+                # Rename the whole abstraction: alpha_rename renames the binder *and*
+                # the bound occurrences in its body (stopping at inner rebinders).
+                # Passing only term.body would leave bound occurrences untouched.
+                renamed = alpha_rename(term, term.name, fresh)
+                return Lam(renamed.name, substitute(renamed.body, variable, replacement))
         return Lam(term.name, substitute(term.body, variable, replacement))
 
     if isinstance(term, App):

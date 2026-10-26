@@ -23,4 +23,4 @@ Code uses no external libraries.  The supplied Assignment 5 source AST is read b
 
 ## Verified status
 
-On October 26, 2026, `python MySolution/test_selfcheck.py` completed successfully: 13 tests passed. `python MySolution/demo.py` completed all 14 required demonstrations. The terminating recursive examples decoded factorial 4 as 24 and Fibonacci 5 as 5; the two deliberate looping examples exhausted their 500-step execution budget as intended.
+On October 26, 2026, `python MySolution/test_selfcheck.py` completed successfully: 19 tests passed. `python MySolution/demo.py` completed all 14 required demonstrations. The terminating recursive examples decoded factorial 4 as 24 and Fibonacci 5 as 5; the two deliberate looping examples exhausted their 500-step execution budget as intended.
