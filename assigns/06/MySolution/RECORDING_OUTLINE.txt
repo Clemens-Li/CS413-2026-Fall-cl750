@@ -56,7 +56,7 @@ Before recording
 - Describe numeral spines, boolean markers, pair projection, and independent execution versus observation budgets.
 
 10:40--11:30 | Slide 12 -- Testing strategy
-- State the scope of the 13 automated tests: substitution, CBV order and budgets, encodings, scope, validation, and compiler purity.
+- State the scope of the 19 automated tests: substitution, CBV order and budgets, encodings, scope, validation, observation, and compiler purity.
 - State the 14 pipeline demonstrations and distinguish tests from a proof.
 
 11:30--13:30 | Demo checkpoint -- terminal
