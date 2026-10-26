@@ -1,0 +1,76 @@
+CS413 Assignment 06 Recording Outline
+Compiling Extended LAMBDA into Pure Lambda Calculus
+Target duration: 15:00 (within the required 15--20 minute range)
+
+Before recording
+- Open Assignment06_Presentation.html in a browser at a readable zoom level.
+- Turn on a webcam inset so the presenter is visible throughout.
+- Have a terminal ready in assigns/06/ for the two documented commands.
+- Speak to the slides; do not read the generated target terms in full.
+
+0:00--0:35 | Slide 1 -- Title
+- Introduce the goal: compile a richer functional language into pure, untyped lambda calculus.
+- Preview the story: represent data with Church encodings, preserve call-by-value behavior, then run and decode the generated terms.
+
+0:35--1:35 | Slide 2 -- What the project must accomplish
+- Contrast the source language features with the three-form target language.
+- Emphasize the central constraint: this is a compiler, not an evaluator that returns precomputed answers.
+- State how success is checked: reduce compiled terms and observe results.
+
+1:35--2:30 | Slide 3 -- Two languages, one pipeline
+- Walk left to right through source AST, CompileVisitor, target AST, reducer, and observer.
+- Mention the deliberate module separation: compiler, target operations, encodings, evaluator, observers, demos, and tests.
+
+2:30--3:35 | Slide 4 -- Pure target terms and reduction
+- Define Var, Lam, and App, then explain weak left-to-right CBV.
+- Explain beta-value steps: evaluate the function, evaluate the argument, then substitute only when the argument is a lambda value.
+- Clarify that budget exhaustion means more work was needed; it does not prove nontermination.
+
+3:35--4:30 | Slide 5 -- Scope safety
+- Use the capture-hazard example: substituting x := y into lambda y. x needs alpha-renaming, not lambda y. y.
+- Explain deterministic fresh names and the free-variable preservation goal.
+
+4:30--5:40 | Slide 6 -- Church encodings
+- Explain the behavioral intuition: booleans choose, numerals iterate, and pairs pass their components to a selector.
+- Point out that target programs contain no native numbers, booleans, pairs, arithmetic, or recursion primitives.
+
+5:40--6:40 | Slide 7 -- Arithmetic and predecessor
+- Name the closed library combinators and explain truncated subtraction as repeated predecessor.
+- Give the intuition for Kleene predecessor: the continuation chain delays one successor application, while the zero path returns the base value.
+
+6:40--7:40 | Slide 8 -- Compositional compiler rules
+- Read only representative rules: variables, lambdas, application, let, pair, and fix.
+- Explain that a full validation walk rejects unsupported constructs even in unselected branches, and compilation never calls the evaluator.
+
+7:40--8:50 | Slide 9 -- Delayed control flow
+- Explain why ordinary CBV would evaluate both conditional branches too soon.
+- Walk through the thunk form: the boolean selects a lambda, and applying I forces only that selected lambda.
+- Relate the same technique to short-circuit and/or.
+
+8:50--9:50 | Slide 10 -- Recursion under CBV
+- Explain why ordinary Y diverges under CBV and why Z adds a delaying lambda.
+- Connect the fix translation to the factorial and Fibonacci examples you will show in the demo.
+
+9:50--10:40 | Slide 11 -- Observing Church results
+- Explain why weak values cannot be decoded merely by looking at syntax.
+- Describe numeral spines, boolean markers, pair projection, and independent execution versus observation budgets.
+
+10:40--11:30 | Slide 12 -- Testing strategy
+- State the scope of the 13 automated tests: substitution, CBV order and budgets, encodings, scope, validation, and compiler purity.
+- State the 14 pipeline demonstrations and distinguish tests from a proof.
+
+11:30--13:30 | Demo checkpoint -- terminal
+- Run: python MySolution/test_selfcheck.py
+- Briefly point out the passing summary rather than reading every test name.
+- Run: python MySolution/demo.py
+- Scroll to, and explain, the simple arithmetic result (2 + 3 * 4 = 14), the unselected-loop conditional (returns 1), factorial 4 (24), and Fibonacci 5 (5). Point out the separate execution and observation counts.
+- Show one exhaustion result, such as (lambda x. 0) LOOP, and explain that the 500-step limit reports bounded exhaustion rather than a mathematical proof.
+
+13:30--14:20 | Slide 13 -- Representative results
+- Summarize the terminating outputs and the evaluation-order checks.
+- Tie the skipped-loop result directly back to delayed branch compilation.
+
+14:20--15:00 | Slide 14 -- Limitations and takeaway
+- State the limits honestly: no parser, no static type checker, intentionally simple bounded reduction, and observers focused on the assigned data.
+- Close with the key takeaway: lexical scope, Church encodings, thunks, and a CBV fixed point preserve the intended behavior without target primitives.
+- Pause for questions or end the recording after the final sentence.
