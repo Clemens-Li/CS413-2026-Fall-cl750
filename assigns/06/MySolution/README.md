@@ -19,7 +19,7 @@ Code uses no external libraries.  The supplied Assignment 5 source AST is read b
 
 ## Presentation and recording materials
 
-`Assignment06_Presentation.html` is the 14-slide browser presentation for this project. Open it in a modern browser and use the arrow keys, Space, Page Up, or Page Down to navigate. `RECORDING_OUTLINE.txt` is a 15-minute speaker outline matched to those slides; it includes the planned live-demo checkpoints and timing.
+`Assignment06_Presentation.pdf` is the 14-slide browser presentation for this project. Open it in a modern browser and use the arrow keys, Space, Page Up, or Page Down to navigate. The link to the video is as follows: https://drive.google.com/file/d/15l0XHb3Zh3xJrtarAkFwA5RfWMgIasL4/view?usp=sharing
 
 ## Verified status
 
