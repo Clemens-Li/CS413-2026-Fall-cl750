@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/lambda3-rpc.schema.json",
+  "title": "LAMBDA3 JSON-RPC 2.0 envelopes",
+  "$defs": {
+    "id": {
+      "oneOf": [
+        {"type": "string"},
+        {"type": "number"},
+        {"type": "null"}
+      ]
+    },
+    "request": {
+      "type": "object",
+      "required": ["jsonrpc", "method"],
+      "properties": {
+        "jsonrpc": {"const": "2.0"},
+        "method": {"type": "string"},
+        "params": {"type": "object"},
+        "id": {"$ref": "#/$defs/id"}
+      },
+      "additionalProperties": true
+    },
+    "error": {
+      "type": "object",
+      "required": ["code", "message"],
+      "properties": {
+        "code": {"type": "integer"},
+        "message": {"type": "string"},
+        "data": {"type": ["object", "array", "string", "number", "boolean", "null"]}
+      },
+      "additionalProperties": false
+    },
+    "response": {
+      "type": "object",
+      "required": ["jsonrpc", "id"],
+      "properties": {
+        "jsonrpc": {"const": "2.0"},
+        "id": {"$ref": "#/$defs/id"},
+        "result": {},
+        "error": {"$ref": "#/$defs/error"}
+      },
+      "oneOf": [
+        {"required": ["result"], "not": {"required": ["error"]}},
+        {"required": ["error"], "not": {"required": ["result"]}}
+      ],
+      "additionalProperties": false
+    },
+    "requestPayload": {
+      "oneOf": [
+        {"$ref": "#/$defs/request"},
+        {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/request"}
+        }
+      ]
+    },
+    "responsePayload": {
+      "oneOf": [
+        {"$ref": "#/$defs/response"},
+        {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/response"}
+        }
+      ]
+    }
+  },
+  "oneOf": [
+    {"$ref": "#/$defs/requestPayload"},
+    {"$ref": "#/$defs/responsePayload"}
+  ]
+}
